@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Denver II — แผนภูมิพัฒนาการเด็ก</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f4;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.2);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1a1a18;
+      --color-bg-secondary: #2c2c2a;
+      --color-text-primary: #f1efea;
+      --color-text-secondary: #b4b2a9;
+      --color-text-tertiary: #888780;
+      --color-border: rgba(255,255,255,0.12);
+      --color-border-secondary: rgba(255,255,255,0.2);
+    }
+  }
+  body { font-family: var(--font); background: var(--color-bg); color: var(--color-text-primary); min-height: 100vh; }
+  .container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  .header { margin-bottom: 1.25rem; }
+  .header h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--color-text-secondary); }
+  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .age-row { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 240px; }
+  .age-row label { font-size: 13px; color: var(--color-text-secondary); white-space: nowrap; }
+  input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; background: var(--color-border-secondary); border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #378ADD; cursor: pointer; border: 2px solid var(--color-bg); box-shadow: 0 0 0 1px #378ADD; }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #378ADD; cursor: pointer; border: 2px solid var(--color-bg); }
+  .age-badge { background: #E6F1FB; color: #0C447C; font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: var(--radius-md); white-space: nowrap; }
+  @media (prefers-color-scheme: dark) { .age-badge { background: #0C447C; color: #B5D4F4; } }
+  .domain-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+  .tab:hover { background: var(--color-bg-secondary); }
+  .tab.active-all { border-color: #B5D4F4; background: #E6F1FB; color: #0C447C; font-weight: 500; }
+  .tab.active-personal { border-color: #B5D4F4; background: #E6F1FB; color: #0C447C; font-weight: 500; }
+  .tab.active-fine { border-color: #C0DD97; background: #EAF3DE; color: #3B6D11; font-weight: 500; }
+  .tab.active-language { border-color: #FAC775; background: #FAEEDA; color: #854F0B; font-weight: 500; }
+  .tab.active-gross { border-color: #F5C4B3; background: #FAECE7; color: #993C1D; font-weight: 500; }
+  @media (prefers-color-scheme: dark) {
+    .tab.active-all, .tab.active-personal { background: #0C447C; color: #B5D4F4; border-color: #185FA5; }
+    .tab.active-fine { background: #27500A; color: #C0DD97; border-color: #3B6D11; }
+    .tab.active-language { background: #633806; color: #FAC775; border-color: #854F0B; }
+    .tab.active-gross { background: #712B13; color: #F5C4B3; border-color: #993C1D; }
+  }
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .scard { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 10px 14px; }
+  .sc-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .sc-val { font-size: 22px; font-weight: 500; }
+  .sc-sub { font-size: 11px; color: var(--color-text-secondary); }
+  .prog-bar { height: 4px; background: var(--color-border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .chart-area { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .timeline { position: relative; min-width: 580px; }
+  .age-axis { display: flex; height: 28px; border-bottom: 0.5px solid var(--color-border); position: relative; margin-bottom: 2px; }
+  .age-tick { position: absolute; font-size: 10px; color: var(--color-text-tertiary); transform: translateX(-50%); bottom: 4px; }
+  .age-line-axis { position: absolute; top: 0; bottom: 0; width: 0.5px; background: var(--color-border); }
+  .domain-section { margin-bottom: 6px; }
+  .domain-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); padding: 6px 0 4px; }
+  .skill-row { height: 28px; position: relative; display: flex; align-items: center; margin-bottom: 2px; }
+  .skill-label { position: absolute; left: 0; font-size: 11px; color: var(--color-text-secondary); z-index: 1; background: var(--color-bg); padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .skill-bar { position: absolute; height: 16px; border-radius: 8px; cursor: pointer; transition: opacity 0.15s; }
+  .skill-bar:hover { filter: brightness(1.05); }
+  .bar-inner { height: 100%; border-radius: 8px; position: absolute; }
+  .cursor-line { position: absolute; top: 0; width: 2px; background: #E24B4A; z-index: 10; pointer-events: none; }
+  .cursor-line::after { content: ''; position: absolute; left: -4px; top: 0; width: 10px; height: 10px; background: #E24B4A; border-radius: 50%; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 1rem; font-size: 11px; color: var(--color-text-secondary); }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 24px; height: 10px; border-radius: 5px; }
+  .tooltip { position: fixed; background: var(--color-bg); border: 0.5px solid var(--color-border-secondary); border-radius: var(--radius-md); padding: 8px 12px; font-size: 12px; color: var(--color-text-primary); z-index: 100; pointer-events: none; display: none; max-width: 220px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); }
+  .t-name { font-weight: 500; margin-bottom: 2px; }
+  .t-range { color: var(--color-text-secondary); }
+  .t-status { margin-top: 4px; font-weight: 500; }
+  footer { text-align: center; font-size: 11px; color: var(--color-text-tertiary); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Denver II — แผนภูมิพัฒนาการเด็ก</h1>
+    <p>เลื่อนแถบอายุเพื่อดูทักษะที่ควรพัฒนาในแต่ละช่วงวัย (แรกเกิด — 6 ปี)</p>
+  </div>
+  <div class="controls">
+    <div class="age-row">
+      <label>อายุเด็ก</label>
+      <input type="range" id="ageSlider" min="0" max="72" value="12" step="1">
+      <span class="age-badge" id="ageBadge">12 เดือน</span>
+    </div>
+    <div class="domain-tabs" id="domainTabs">
+      <button class="tab active-all" data-d="all">ทุกด้าน</button>
+      <button class="tab" data-d="personal">สังคม/ส่วนตัว</button>
+      <button class="tab" data-d="fine">กล้ามเนื้อมัดเล็ก</button>
+      <button class="tab" data-d="language">ภาษา</button>
+      <button class="tab" data-d="gross">กล้ามเนื้อมัดใหญ่</button>
+    </div>
+  </div>
+  <div class="summary-cards" id="summaryCards"></div>
+  <div class="chart-area">
+    <div class="timeline" id="timeline">
+      <div class="age-axis" id="ageAxis"></div>
+      <div id="skillsContainer"></div>
+      <div class="cursor-line" id="cursorLine"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>สังคม/ส่วนตัว</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#639922"></div>กล้ามเนื้อมัดเล็ก</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>ภาษา</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>กล้ามเนื้อมัดใหญ่</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A;opacity:0.6"></div>เส้นอายุปัจจุบัน</div>
+  </div>
+  <footer>อ้างอิง: Denver Developmental Screening Test II (Frankenburg et al., 1992) — เพื่อการศึกษาเท่านั้น ไม่ใช่การวินิจฉัยทางการแพทย์</footer>
+</div>
+<div class="tooltip" id="tooltip">
+  <div class="t-name" id="tName"></div>
+  <div class="t-range" id="tRange"></div>
+  <div class="t-status" id="tStatus"></div>
+</div>
+<script>
+const SKILLS=[
+  {domain:'personal',name:'ยิ้มตอบสนอง',p25:1,p50:1.5,p75:2,p90:3},
+  {domain:'personal',name:'รับรู้ผู้ดูแล',p25:1,p50:2,p75:3,p90:4},
+  {domain:'personal',name:'เล่นกับมือ',p25:2,p50:3,p75:4,p90:5},
+  {domain:'personal',name:'หัวเราะเสียงดัง',p25:2,p50:3,p75:4.5,p90:6},
+  {domain:'personal',name:'แสดงความพอใจ',p25:3,p50:4,p75:5,p90:6},
+  {domain:'personal',name:'กินอาหารเอง (คุกกี้)',p25:4,p50:6,p75:8,p90:10},
+  {domain:'personal',name:'ตบมือ Patty-cake',p25:7,p50:9,p75:10,p90:12},
+  {domain:'personal',name:'โบกมือบ๊ายบาย',p25:8,p50:10,p75:12,p90:13},
+  {domain:'personal',name:'ดื่มน้ำจากแก้ว',p25:9,p50:12,p75:15,p90:16},
+  {domain:'personal',name:'เลียนแบบงานบ้าน',p25:12,p50:15,p75:18,p90:21},
+  {domain:'personal',name:'ถอดเสื้อผ้าเอง',p25:15,p50:20,p75:26,p90:30},
+  {domain:'personal',name:'ล้างมือและเช็ดมือ',p25:18,p50:23,p75:30,p90:36},
+  {domain:'personal',name:'สวมเสื้อผ้าได้บางส่วน',p25:21,p50:27,p75:34,p90:40},
+  {domain:'personal',name:'เล่นกับเพื่อน',p25:30,p50:36,p75:42,p90:48},
+  {domain:'personal',name:'แต่งตัวเองได้',p25:36,p50:44,p75:52,p90:60},
+  {domain:'fine',name:'มองตาม 180°',p25:1,p50:2,p75:3,p90:4},
+  {domain:'fine',name:'มองตามของ',p25:1,p50:1.5,p75:2,p90:3},
+  {domain:'fine',name:'จับกำมือ',p25:2,p50:3,p75:4,p90:5},
+  {domain:'fine',name:'เขย่าของเล่น',p25:3,p50:4,p75:5,p90:6},
+  {domain:'fine',name:'จับสิ่งของ 2 มือ',p25:4,p50:6,p75:7,p90:8},
+  {domain:'fine',name:'หยิบด้วยนิ้วหัวแม่มือ',p25:7,p50:9,p75:10,p90:11},
+  {domain:'fine',name:'หยิบของชิ้นเล็ก',p25:8,p50:10,p75:11,p90:12},
+  {domain:'fine',name:'วางบล็อก 2 ชิ้น',p25:10,p50:12,p75:14,p90:17},
+  {domain:'fine',name:'วาดเส้น',p25:12,p50:14,p75:17,p90:22},
+  {domain:'fine',name:'วาดวงกลม',p25:24,p50:30,p75:36,p90:40},
+  {domain:'fine',name:'วาดบวก (+)',p25:30,p50:36,p75:42,p90:48},
+  {domain:'fine',name:'วาดสี่เหลี่ยม',p25:40,p50:47,p75:54,p90:60},
+  {domain:'fine',name:'วาดรูปคน 3 ส่วน',p25:36,p50:44,p75:52,p90:58},
+  {domain:'fine',name:'วาดรูปคน 6 ส่วน',p25:48,p50:56,p75:62,p90:68},
+  {domain:'language',name:'ส่งเสียง (เสียงอ้อแอ้)',p25:1,p50:1.5,p75:2,p90:3},
+  {domain:'language',name:'หัน/มองหาเสียง',p25:3,p50:4,p75:6,p90:8},
+  {domain:'language',name:'เปล่งเสียงพยัญชนะ',p25:4,p50:6,p75:8,p90:10},
+  {domain:'language',name:'พูด "ม้า-ม้า/ด้า-ด้า"',p25:5,p50:7,p75:9,p90:12},
+  {domain:'language',name:'เข้าใจ "ไม่"',p25:7,p50:9,p75:12,p90:14},
+  {domain:'language',name:'พูดคำแรก (1 คำ)',p25:9,p50:12,p75:14,p90:16},
+  {domain:'language',name:'พูดได้ 3 คำ',p25:11,p50:13,p75:15,p90:18},
+  {domain:'language',name:'พูดได้ 6 คำ',p25:13,p50:15,p75:18,p90:21},
+  {domain:'language',name:'ชี้รูปภาพ 1 ภาพ',p25:14,p50:17,p75:21,p90:24},
+  {domain:'language',name:'พูดประโยค 2 คำ',p25:15,p50:18,p75:21,p90:24},
+  {domain:'language',name:'พูดได้ 20+ คำ',p25:16,p50:19,p75:22,p90:26},
+  {domain:'language',name:'ชื่อ 1 ภาพ',p25:17,p50:21,p75:26,p90:30},
+  {domain:'language',name:'ประโยค 3 คำ',p25:21,p50:24,p75:28,p90:33},
+  {domain:'language',name:'บอกชื่อตัวเอง',p25:21,p50:24,p75:30,p90:36},
+  {domain:'language',name:'เข้าใจ "เย็น/เหนื่อย/หิว"',p25:24,p50:30,p75:36,p90:42},
+  {domain:'language',name:'พูดประโยค 4+ คำ',p25:30,p50:36,p75:42,p90:48},
+  {domain:'language',name:'บอกที่อยู่/อายุ',p25:42,p50:48,p75:56,p90:60},
+  {domain:'language',name:'ตีความคำศัพท์',p25:48,p50:54,p75:60,p90:66},
+  {domain:'gross',name:'ยกหัวได้ (คว่ำหน้า)',p25:0.1,p50:0.5,p75:1,p90:2},
+  {domain:'gross',name:'ยกหน้าอก 45°',p25:1,p50:2,p75:3,p90:4},
+  {domain:'gross',name:'ยกหน้าอก 90°',p25:2,p50:3,p75:4,p90:5},
+  {domain:'gross',name:'พลิกตัว (คว่ำ→หงาย)',p25:2,p50:4,p75:5,p90:6},
+  {domain:'gross',name:'นั่งได้โดยประคองตัว',p25:3,p50:5,p75:6,p90:7},
+  {domain:'gross',name:'ยืนโดยประคอง',p25:5,p50:6,p75:8,p90:10},
+  {domain:'gross',name:'นั่งได้เอง',p25:5,p50:7,p75:8,p90:10},
+  {domain:'gross',name:'คลาน',p25:6,p50:8,p75:9,p90:11},
+  {domain:'gross',name:'เกาะเดิน',p25:7,p50:9,p75:11,p90:12},
+  {domain:'gross',name:'เดินได้เอง',p25:10,p50:12,p75:13,p90:15},
+  {domain:'gross',name:'วิ่งได้',p25:12,p50:15,p75:18,p90:21},
+  {domain:'gross',name:'เตะลูกบอล',p25:14,p50:17,p75:20,p90:23},
+  {domain:'gross',name:'กระโดดสองขา',p25:18,p50:22,p75:26,p90:30},
+  {domain:'gross',name:'ขึ้นบันไดสลับเท้า',p25:22,p50:28,p75:34,p90:40},
+  {domain:'gross',name:'ขี่จักรยานสามล้อ',p25:24,p50:30,p75:36,p90:42},
+  {domain:'gross',name:'กระโดดขาเดียว',p25:30,p50:36,p75:44,p90:52},
+  {domain:'gross',name:'ลงบันไดสลับเท้า',p25:42,p50:50,p75:58,p90:65},
+];
+const DC={personal:'#378ADD',fine:'#639922',language:'#BA7517',gross:'#D85A30'};
+const DN={personal:'สังคมและส่วนตัว',fine:'กล้ามเนื้อมัดเล็ก-การมองเห็น',language:'ภาษา',gross:'กล้ามเนื้อมัดใหญ่'};
+const MAX=72,LW=140,RP=8;
+let age=12,domain='all';
+function tw(){return document.getElementById('timeline').clientWidth||600;}
+function mx(m){const w=tw(),cw=w-LW-RP;return LW+(m/MAX)*cw;}
+const TICKS=[0,2,4,6,9,12,15,18,21,24,30,36,42,48,54,60,66,72];
+function renderAxis(){
+  const ax=document.getElementById('ageAxis');ax.innerHTML='';
+  TICKS.forEach(m=>{
+    const x=mx(m);
+    const t=document.createElement('div');t.className='age-tick';t.style.left=x+'px';
+    t.textContent=m<24?m+'ด.':(m/12)+'ปี';ax.appendChild(t);
+    const l=document.createElement('div');l.className='age-line-axis';l.style.left=x+'px';ax.appendChild(l);
+  });
+}
+function renderSkills(){
+  const cont=document.getElementById('skillsContainer');cont.innerHTML='';
+  const domains=domain==='all'?['personal','fine','language','gross']:[domain];
+  domains.forEach(d=>{
+    const skills=SKILLS.filter(s=>s.domain===d);
+    const sec=document.createElement('div');sec.className='domain-section';
+    const dl=document.createElement('div');dl.className='domain-label';dl.textContent=DN[d];sec.appendChild(dl);
+    skills.forEach(sk=>{
+      const row=document.createElement('div');row.className='skill-row';
+      const lbl=document.createElement('div');lbl.className='skill-label';lbl.style.maxWidth=LW-8+'px';lbl.textContent=sk.name;lbl.title=sk.name;row.appendChild(lbl);
+      const x25=mx(sk.p25),x90=mx(sk.p90),x50=mx(sk.p50),x75=mx(sk.p75);
+      const bw=Math.max(x90-x25,4);const color=DC[d];
+      const bar=document.createElement('div');bar.className='skill-bar';
+      bar.style.left=x25+'px';bar.style.width=bw+'px';
+      const isActive=age>=sk.p25&&age<=sk.p90;
+      const isPast=age>sk.p90;
+      bar.style.background=isActive?color+'44':color+'1a';
+      bar.style.border=isActive?'1px solid '+color:'0.5px solid '+color+'55';
+      const inner=document.createElement('div');inner.className='bar-inner';
+      inner.style.left=(x50-x25)+'px';inner.style.width=Math.max(x75-x50,4)+'px';
+      inner.style.background=color+(isActive?'88':'44');row.appendChild(bar);bar.appendChild(inner);
+      bar.addEventListener('mousemove',e=>{
+        const tt=document.getElementById('tooltip');tt.style.display='block';
+        tt.style.left=(e.clientX+12)+'px';tt.style.top=(e.clientY-10)+'px';
+        document.getElementById('tName').textContent=sk.name;
+        document.getElementById('tRange').textContent='ช่วงปกติ: '+sk.p25+'–'+sk.p90+' เดือน';
+        const st=document.getElementById('tStatus');
+        if(age<sk.p25){st.textContent='⏳ ยังไม่ถึงวัย';st.style.color='#854F0B';}
+        else if(age>sk.p90){st.textContent='⚠️ ควรปรึกษาแพทย์';st.style.color='#A32D2D';}
+        else{st.textContent='✅ อยู่ในช่วงพัฒนา';st.style.color='#3B6D11';}
+      });
+      bar.addEventListener('mouseleave',()=>{document.getElementById('tooltip').style.display='none';});
+      sec.appendChild(row);
+    });
+    cont.appendChild(sec);
+  });
+}
+function renderCursor(){
+  const cl=document.getElementById('cursorLine');
+  cl.style.left=mx(age)+'px';
+  cl.style.height=(document.getElementById('skillsContainer').offsetHeight+28)+'px';
+}
+function renderSummary(){
+  const cards=document.getElementById('summaryCards');cards.innerHTML='';
+  ['personal','fine','language','gross'].forEach(d=>{
+    const skills=SKILLS.filter(s=>s.domain===d);
+    const exp=skills.filter(s=>age>=s.p25&&age<=s.p90).length;
+    const card=document.createElement('div');card.className='scard';
+    const pct=skills.length>0?Math.round((exp/skills.length)*100):0;
+    card.innerHTML='<div class="sc-label">'+DN[d].split('-')[0]+'</div><div class="sc-val" style="color:'+DC[d]+'">'+exp+'</div><div class="sc-sub">ทักษะในช่วงนี้</div><div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+DC[d]+'"></div></div>';
+    cards.appendChild(card);
+  });
+  const concern=SKILLS.filter(s=>age>s.p90).length;
+  const ac=document.createElement('div');ac.className='scard';
+  const cc=concern>0?'#E24B4A':'#639922';
+  ac.innerHTML='<div class="sc-label">ควรติดตาม</div><div class="sc-val" style="color:'+cc+'">'+concern+'</div><div class="sc-sub">'+(concern>0?'⚠️ ทักษะ':'✅ ปกติดี')+'</div><div class="prog-bar"><div class="prog-fill" style="width:'+Math.min(concern*20,100)+'%;background:'+cc+'"></div></div>';
+  cards.appendChild(ac);
+}
+function updateBadge(){
+  const b=document.getElementById('ageBadge');
+  if(age<24)b.textContent=age+' เดือน';
+  else if(age%12===0)b.textContent=(age/12)+' ปี';
+  else b.textContent=Math.floor(age/12)+' ปี '+(age%12)+' เดือน';
+}
+function render(){renderAxis();renderSkills();renderCursor();renderSummary();updateBadge();}
+document.getElementById('ageSlider').addEventListener('input',function(){age=parseInt(this.value);render();});
+document.getElementById('domainTabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.tab');if(!btn)return;
+  document.querySelectorAll('.tab').forEach(t=>{t.className='tab';});
+  domain=btn.dataset.d;btn.className='tab active-'+domain;
+  render();
+});
+window.addEventListener('resize',()=>render());
+render();
+</script>
+</body>
+</html>
